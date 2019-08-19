@@ -19,6 +19,7 @@ import copy
 import functools
 import sys
 
+import osprofiler
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
@@ -122,6 +123,7 @@ class ConductorManager(manager.Manager):
         # NOTE(hanlind): Simulate an empty db result for compat reasons.
         return []
 
+    @osprofiler.profiler.disable_tracing
     def _object_dispatch(self, target, method, args, kwargs):
         """Dispatch a call to an object method.
 
@@ -132,10 +134,13 @@ class ConductorManager(manager.Manager):
         try:
             # NOTE(danms): Keep the getattr inside the try block since
             # a missing method is really a client problem
-            return getattr(target, method)(*args, **kwargs)
+            myfunc = osprofiler.profiler.trace("object_dispatch")(
+                getattr(target, method))
+            return myfunc(*args, **kwargs)
         except Exception:
             raise messaging.ExpectedException()
 
+    @osprofiler.profiler.disable_tracing
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):
         objclass = nova_object.NovaObject.obj_class_from_name(

@@ -31,6 +31,8 @@ from oslo_utils import strutils
 from oslo_utils import units
 import six
 
+from osprofiler import profiler
+
 import nova.conf
 from nova import exception
 from nova.i18n import _
@@ -78,9 +80,11 @@ def _update_utime_ignore_eacces(path):
                 ctxt.reraise = False
 
 
+@six.add_metaclass(profiler.TracedMeta)
 @six.add_metaclass(abc.ABCMeta)
 class Image(object):
 
+    __trace_args__ = {'name': 'Image'}
     SUPPORTS_CLONE = False
 
     def __init__(self, path, source_type, driver_format, is_block_dev=False):

@@ -761,19 +761,7 @@ def validate_integer(value, name, min_value=None, max_value=None):
 
 
 def _serialize_profile_info():
-    if not profiler:
-        return None
-    prof = profiler.get()
-    trace_info = None
-    if prof:
-        # FIXME(DinaBelova): we'll add profiler.get_info() method
-        # to extract this info -> we'll need to update these lines
-        trace_info = {
-            "hmac_key": prof.hmac_key,
-            "base_id": prof.get_base_id(),
-            "parent_id": prof.get_id()
-        }
-    return trace_info
+    return profiler.serialize_profiler(asynch=True)
 
 
 def spawn(func, *args, **kwargs):
@@ -799,7 +787,12 @@ def spawn(func, *args, **kwargs):
             profiler.init(**profiler_info)
         return func(*args, **kwargs)
 
-    return eventlet.spawn(context_wrapper, *args, **kwargs)
+    gt = eventlet.spawn(context_wrapper, *args, **kwargs)
+    if profiler_info and profiler:
+        gt.wait = profiler.trace(
+            "asynch_wait", info={'wait_for': profiler_info['base_id']},
+            immortal=True)(gt.wait)
+    return gt
 
 
 def spawn_n(func, *args, **kwargs):

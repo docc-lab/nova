@@ -157,7 +157,7 @@ class RequestContextSerializer(messaging.Serializer):
             return entity
         return self._base.deserialize_entity(context, entity)
 
-    def serialize_context(self, context):
+    def serialize_context(self, context, asynch=False):
         return context.to_dict()
 
     def deserialize_context(self, context):
@@ -165,20 +165,12 @@ class RequestContextSerializer(messaging.Serializer):
 
 
 class ProfilerRequestContextSerializer(RequestContextSerializer):
-    def serialize_context(self, context):
+    def serialize_context(self, context, asynch=False):
         _context = super(ProfilerRequestContextSerializer,
                          self).serialize_context(context)
 
-        prof = profiler.get()
-        if prof:
-            # FIXME(DinaBelova): we'll add profiler.get_info() method
-            # to extract this info -> we'll need to update these lines
-            trace_info = {
-                "hmac_key": prof.hmac_key,
-                "base_id": prof.get_base_id(),
-                "parent_id": prof.get_id()
-            }
-            _context.update({"trace_info": trace_info})
+        trace_info = profiler.serialize_profiler(asynch=asynch)
+        _context.update({"trace_info": trace_info})
 
         return _context
 

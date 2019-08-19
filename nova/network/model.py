@@ -19,6 +19,8 @@ import netaddr
 from oslo_serialization import jsonutils
 import six
 
+from osprofiler import profiler
+
 from nova import exception
 from nova.i18n import _
 from nova import utils
@@ -595,8 +597,7 @@ class NetworkInfoAsyncWrapper(NetworkInfo):
         return self._sync_wrapper(fn, *args, **kwargs)
 
     def __repr__(self, *args, **kwargs):
-        fn = super(NetworkInfoAsyncWrapper, self).__repr__
-        return self._sync_wrapper(fn, *args, **kwargs)
+        return "<NetworkInfoAsyncWrapper at 0x%x>" % id(self)
 
     def wait(self, do_raise=True):
         """Wait for asynchronous call to finish."""

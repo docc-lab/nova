@@ -28,6 +28,8 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 import six
 
+from osprofiler import profiler
+
 import nova.conf
 from nova.i18n import _
 from nova.virt import event as virtevent
@@ -113,6 +115,7 @@ CAPABILITY_TRAITS_MAP = {
 }
 
 
+@six.add_metaclass(profiler.TracedMeta)
 class ComputeDriver(object):
     """Base class for compute drivers.
 
@@ -143,6 +146,7 @@ class ComputeDriver(object):
     virtualization platform.
 
     """
+    __trace_args__ = {"name": "ComputeDriver"}
 
     # NOTE(mriedem): When adding new capabilities, consider whether they
     # should also be added to CAPABILITY_TRAITS_MAP; if so, any new traits
