@@ -4690,7 +4690,8 @@ class LibvirtDriver(driver.ComputeDriver):
 
         if (virt_type not in ("lxc", "uml", "parallels", "xen") or
                 (virt_type == "xen" and guest.os_type == fields.VMMode.HVM)):
-            guest.features.append(vconfig.LibvirtConfigGuestFeatureACPI())
+            if caps.host.cpu.arch != 'aarch64' or guest.os_loader_type == "pflash":
+                guest.features.append(vconfig.LibvirtConfigGuestFeatureACPI())
             guest.features.append(vconfig.LibvirtConfigGuestFeatureAPIC())
 
         if (virt_type in ("qemu", "kvm") and
@@ -4935,7 +4936,7 @@ class LibvirtDriver(driver.ComputeDriver):
             hw_firmware_type = image_meta.properties.get('hw_firmware_type')
             if caps.host.cpu.arch == fields.Architecture.AARCH64:
                 if not hw_firmware_type:
-                    hw_firmware_type = fields.FirmwareType.UEFI
+                    hw_firmware_type = fields.FirmwareType.BIOS
             if hw_firmware_type == fields.FirmwareType.UEFI:
                 if self._has_uefi_support():
                     global uefi_logged
