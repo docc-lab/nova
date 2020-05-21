@@ -22,6 +22,8 @@ import six
 import six.moves.urllib.parse as urlparse
 from webob import exc
 
+from osprofiler import profiler
+
 from nova.api.openstack import common
 from nova.api.openstack.compute.schemas import simple_tenant_usage as schema
 from nova.api.openstack.compute.views import usages as usages_view
@@ -44,6 +46,7 @@ def parse_strtime(dstr, fmt):
         raise exception.InvalidStrTime(reason=six.text_type(e))
 
 
+@profiler.trace_cls("nova")
 class SimpleTenantUsageController(wsgi.Controller):
 
     _view_builder_class = usages_view.ViewBuilder
