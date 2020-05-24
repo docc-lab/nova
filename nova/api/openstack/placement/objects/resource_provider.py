@@ -37,8 +37,6 @@ from sqlalchemy import func
 from sqlalchemy import sql
 from sqlalchemy.sql import null
 
-from osprofiler import profiler
-
 from nova.api.openstack.placement import db_api
 from nova.api.openstack.placement import exception
 from nova.api.openstack.placement.objects import consumer as consumer_obj
@@ -69,7 +67,6 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def ensure_rc_cache(ctx):
     """Ensures that a singleton resource class cache has been created in the
@@ -84,7 +81,6 @@ def ensure_rc_cache(ctx):
     _RC_CACHE = rc_cache.ResourceClassCache(ctx)
 
 
-@profiler.trace("nova")
 @oslo_db_api.wrap_db_retry(max_retries=5, retry_on_deadlock=True)
 # Bug #1760322: If the caller raises an exception, we don't want the trait
 # sync rolled back; so use an .independent transaction
@@ -127,7 +123,6 @@ def _trait_sync(ctx):
             pass  # some other process sync'd, just ignore
 
 
-@profiler.trace("nova")
 def ensure_trait_sync(ctx):
     """Ensures that the os_traits library is synchronized to the traits db.
 
@@ -152,7 +147,6 @@ def ensure_trait_sync(ctx):
             _TRAITS_SYNCED = True
 
 
-@profiler.trace("nova")
 def _get_current_inventory_resources(ctx, rp):
     """Returns a set() containing the resource class IDs for all resources
     currently having an inventory record for the supplied resource provider.
@@ -167,7 +161,6 @@ def _get_current_inventory_resources(ctx, rp):
     return set([r[0] for r in existing_resources])
 
 
-@profiler.trace("nova")
 def _delete_inventory_from_provider(ctx, rp, to_delete):
     """Deletes any inventory records from the supplied provider and set() of
     resource class identifiers.
@@ -199,7 +192,6 @@ def _delete_inventory_from_provider(ctx, rp, to_delete):
     return res.rowcount
 
 
-@profiler.trace("nova")
 def _add_inventory_to_provider(ctx, rp, inv_list, to_add):
     """Inserts new inventory records for the supplied resource provider.
 
@@ -224,7 +216,6 @@ def _add_inventory_to_provider(ctx, rp, inv_list, to_add):
         ctx.session.execute(ins_stmt)
 
 
-@profiler.trace("nova")
 def _update_inventory_for_provider(ctx, rp, inv_list, to_update):
     """Updates existing inventory records for the supplied resource provider.
 
@@ -266,7 +257,6 @@ def _update_inventory_for_provider(ctx, rp, inv_list, to_update):
     return exceeded
 
 
-@profiler.trace("nova")
 def _increment_provider_generation(ctx, rp):
     """Increments the supplied provider's generation value, supplying the
     currently-known generation. Returns whether the increment succeeded.
@@ -292,7 +282,6 @@ def _increment_provider_generation(ctx, rp):
     return new_generation
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _add_inventory(context, rp, inventory):
     """Add one Inventory that wasn't already on the provider.
@@ -307,7 +296,6 @@ def _add_inventory(context, rp, inventory):
     rp.generation = _increment_provider_generation(context, rp)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _update_inventory(context, rp, inventory):
     """Update an inventory already on the provider.
@@ -323,7 +311,6 @@ def _update_inventory(context, rp, inventory):
     return exceeded
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _delete_inventory(context, rp, resource_class):
     """Delete up to one Inventory of the given resource_class string.
@@ -339,7 +326,6 @@ def _delete_inventory(context, rp, resource_class):
     rp.generation = _increment_provider_generation(context, rp)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _set_inventory(context, rp, inv_list):
     """Given an InventoryList object, replaces the inventory of the
@@ -394,7 +380,6 @@ def _set_inventory(context, rp, inv_list):
     return exceeded
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_provider_by_uuid(context, uuid):
     """Given a UUID, return a dict of information about the resource provider
@@ -429,7 +414,6 @@ def _get_provider_by_uuid(context, uuid):
     return dict(res)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_aggregates_by_provider_id(context, rp_id):
     """Returns a dict, keyed by internal aggregate ID, of aggregate UUIDs
@@ -444,7 +428,6 @@ def _get_aggregates_by_provider_id(context, rp_id):
     return {r[0]: r[1] for r in context.session.execute(sel).fetchall()}
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _anchors_for_sharing_providers(context, rp_ids, get_id=False):
     """Given a list of internal IDs of sharing providers, returns a set of
@@ -505,7 +488,6 @@ def _anchors_for_sharing_providers(context, rp_ids, get_id=False):
     return set([(r[0], r[1]) for r in context.session.execute(sel).fetchall()])
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _ensure_aggregate(ctx, agg_uuid):
     """Finds an aggregate and returns its internal ID. If not found, creates
@@ -536,7 +518,6 @@ def _ensure_aggregate(ctx, agg_uuid):
         return _ensure_aggregate(ctx, agg_uuid)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _set_aggregates(context, resource_provider, provided_aggregates,
                     increment_generation=False):
@@ -604,7 +585,6 @@ def _set_aggregates(context, resource_provider, provided_aggregates,
             context, resource_provider)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_traits_by_provider_id(context, rp_id):
     t = sa.alias(_TRAIT_TBL, name='t')
@@ -618,7 +598,6 @@ def _get_traits_by_provider_id(context, rp_id):
     return [dict(r) for r in context.session.execute(sel).fetchall()]
 
 
-@profiler.trace("nova")
 def _add_traits_to_provider(ctx, rp_id, to_add):
     """Adds trait associations to the provider with the supplied ID.
 
@@ -641,7 +620,6 @@ def _add_traits_to_provider(ctx, rp_id, to_add):
             pass
 
 
-@profiler.trace("nova")
 def _delete_traits_from_provider(ctx, rp_id, to_delete):
     """Deletes trait associations from the provider with the supplied ID and
     set() of internal trait IDs.
@@ -659,7 +637,6 @@ def _delete_traits_from_provider(ctx, rp_id, to_delete):
     ctx.session.execute(del_stmt)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _set_traits(context, rp, traits):
     """Given a ResourceProvider object and a TraitList object, replaces the set
@@ -690,7 +667,6 @@ def _set_traits(context, rp, traits):
     rp.generation = _increment_provider_generation(context, rp)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _has_child_providers(context, rp_id):
     """Returns True if the supplied resource provider has any child providers,
@@ -704,7 +680,6 @@ def _has_child_providers(context, rp_id):
     return False
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _set_root_provider_id(context, rp_id, root_id):
     """Simply sets the root_provider_id value for a provider identified by
@@ -722,7 +697,6 @@ ProviderIds = collections.namedtuple(
     'ProviderIds', 'id uuid parent_id parent_uuid root_id root_uuid')
 
 
-@profiler.trace("nova")
 def _provider_ids_from_rp_ids(context, rp_ids):
     """Given an iterable of internal resource provider IDs, returns a dict,
     keyed by internal provider Id, of ProviderIds namedtuples describing those
@@ -773,7 +747,6 @@ def _provider_ids_from_rp_ids(context, rp_ids):
     return ret
 
 
-@profiler.trace("nova")
 def _provider_ids_from_uuid(context, uuid):
     """Given the UUID of a resource provider, returns a namedtuple
     (ProviderIds) with the internal ID, the UUID, the parent provider's
@@ -817,7 +790,6 @@ def _provider_ids_from_uuid(context, uuid):
     return ProviderIds(**dict(res))
 
 
-@profiler.trace("nova")
 def _provider_ids_matching_aggregates(context, member_of, rp_ids=None):
     """Given a list of lists of aggregate UUIDs, return the internal IDs of all
     resource providers associated with the aggregates.
@@ -902,7 +874,6 @@ def _provider_ids_matching_aggregates(context, member_of, rp_ids=None):
     return set(r[0] for r in context.session.execute(sel))
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _delete_rp_record(context, _id):
     return context.session.query(models.ResourceProvider).\
@@ -1233,7 +1204,6 @@ class ResourceProvider(base.VersionedObject, base.TimestampedObject):
         return resource_provider
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_providers_with_shared_capacity(ctx, rc_id, amount, member_of=None):
     """Returns a list of resource provider IDs (internal IDs, not UUIDs)
@@ -1625,7 +1595,6 @@ class Inventory(base.VersionedObject, base.TimestampedObject):
         return int((self.total - self.reserved) * self.allocation_ratio)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_inventory_by_provider_id(ctx, rp_id):
     inv = sa.alias(_INV_TBL, name="i")
@@ -1701,7 +1670,6 @@ class Allocation(base.VersionedObject, base.TimestampedObject):
     }
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _delete_allocations_for_consumer(ctx, consumer_id):
     """Deletes any existing allocations that correspond to the allocations to
@@ -1713,7 +1681,6 @@ def _delete_allocations_for_consumer(ctx, consumer_id):
     ctx.session.execute(del_sql)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer
 def _delete_allocations_by_ids(ctx, alloc_ids):
     """Deletes allocations having an internal id value in the set of supplied
@@ -1723,7 +1690,6 @@ def _delete_allocations_by_ids(ctx, alloc_ids):
     ctx.session.execute(del_sql)
 
 
-@profiler.trace("nova")
 def _check_capacity_exceeded(ctx, allocs):
     """Checks to see if the supplied allocation records would result in any of
     the inventories involved having their capacity exceeded.
@@ -1890,7 +1856,6 @@ def _check_capacity_exceeded(ctx, allocs):
     return res_providers
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_allocations_by_provider_id(ctx, rp_id):
     allocs = sa.alias(_ALLOC_TBL, name="a")
@@ -1925,7 +1890,6 @@ def _get_allocations_by_provider_id(ctx, rp_id):
     return [dict(r) for r in ctx.session.execute(sel)]
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.reader
 def _get_allocations_by_consumer_uuid(ctx, consumer_uuid):
     allocs = sa.alias(_ALLOC_TBL, name="a")
@@ -1965,7 +1929,6 @@ def _get_allocations_by_consumer_uuid(ctx, consumer_uuid):
     return [dict(r) for r in ctx.session.execute(sel)]
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer.independent
 def _create_incomplete_consumers_for_provider(ctx, rp_id):
     # TODO(jaypipes): Remove in Stein after a blocker migration is added.
@@ -2015,7 +1978,6 @@ def _create_incomplete_consumers_for_provider(ctx, rp_id):
                      res.rowcount)
 
 
-@profiler.trace("nova")
 @db_api.placement_context_manager.writer.independent
 def _create_incomplete_consumer(ctx, consumer_id):
     # TODO(jaypipes): Remove in Stein after a blocker migration is added.
@@ -2310,7 +2272,6 @@ class UsageList(base.ObjectListBase, base.VersionedObject):
         'objects': fields.ListOfObjectsField('Usage'),
     }
 
-    @profiler.trace("nova")
     @staticmethod
     @db_api.placement_context_manager.reader
     def _get_all_by_resource_provider_uuid(context, rp_uuid):
@@ -2330,7 +2291,6 @@ class UsageList(base.ObjectListBase, base.VersionedObject):
                   for item in query.all()]
         return result
 
-    @profiler.trace("nova")
     @staticmethod
     @db_api.placement_context_manager.reader
     def _get_all_by_project_user(context, project_id, user_id=None):
@@ -2350,13 +2310,11 @@ class UsageList(base.ObjectListBase, base.VersionedObject):
                   for item in query.all()]
         return result
 
-    @profiler.trace("nova")
     @classmethod
     def get_all_by_resource_provider_uuid(cls, context, rp_uuid):
         usage_list = cls._get_all_by_resource_provider_uuid(context, rp_uuid)
         return base.obj_make_list(context, cls(context), Usage, usage_list)
 
-    @profiler.trace("nova")
     @classmethod
     def get_all_by_project_user(cls, context, project_id, user_id=None):
         usage_list = cls._get_all_by_project_user(context, project_id,

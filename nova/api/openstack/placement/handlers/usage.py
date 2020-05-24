@@ -16,8 +16,6 @@ from oslo_utils import encodeutils
 from oslo_utils import timeutils
 import webob
 
-from osprofiler import profiler
-
 from nova.api.openstack.placement import exception
 from nova.api.openstack.placement import microversion
 from nova.api.openstack.placement.objects import resource_provider as rp_obj
@@ -45,11 +43,6 @@ def list_usages(req):
     On success return a 200 with an application/json representation of
     the usage dictionary.
     """
-    _list_usages(req)
-
-
-@profiler.trace("nova")
-def _list_usages(req):
     context = req.environ['placement.context']
     context.can(policies.PROVIDER_USAGES)
     uuid = util.wsgi_path_item(req.environ, 'uuid')
