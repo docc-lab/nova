@@ -55,6 +55,8 @@ from oslo_utils import units
 import six
 from six.moves import range
 
+from osprofiler import profiler
+
 from nova import block_device
 from nova.cells import rpcapi as cells_rpcapi
 from nova import compute
@@ -1967,6 +1969,7 @@ class ComputeManager(manager.Manager):
             # locked because we could wait in line to build this instance
             # for a while and we want to make sure that nothing else tries
             # to do anything with this instance while we wait.
+            profiler.annotate("_build_semaphore._waiters", info={"value": len(self._build_semaphore._waiters)})
             with self._build_semaphore:
                 try:
                     result = self._do_build_and_run_instance(*args, **kwargs)
